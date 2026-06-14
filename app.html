@@ -257,6 +257,8 @@ hr.div{border:none;border-top:1px solid var(--border);}
     <select id="lang-sel" class="lang-sel" onchange="setLang(this.value)">
       <option value="ja">🇯🇵 日本語</option>
       <option value="en">🇺🇸 English</option>
+      <option value="es">🇪🇸 Español</option>
+      <option value="hi">🇮🇳 हिन्दी</option>
     </select>
   </div>
 
@@ -339,6 +341,30 @@ const STRINGS = {
     no_file:'No pattern (solid)', has_file:'📌 File selected',
     processing:'Processing…', success:'Beautifully transformed!',
     reset:'Reset', download:'📥 Download',
+  },
+  es:{
+    upload_btn:'Abrir imagen', dl_btn:'Guardar', tab_global:'Ajustes',
+    dz_text:'Carga una foto<br>¡y crea arte pop!<br><small style="opacity:.6">Clic o arrastra</small>',
+    sec_upload:'Imagen original', sec_global:'Ajustes globales', sec_areas:'Configuración de áreas',
+    th1:'Umbral 1  Negro→Oscuro', th2:'Umbral 2  Oscuro→Claro', th3:'Umbral 3  Claro→Blanco',
+    line:'Grosor de línea', smooth:'Suavizado',
+    color:'Color', pattern:'Patrón', psize:'Tamaño del patrón',
+    areas:['Área① Blanco','Área② Claro','Área③ Oscuro','Área④ Negro'],
+    no_file:'Sin patrón (sólido)', has_file:'📌 Archivo seleccionado',
+    processing:'Procesando…', success:'¡Transformado con éxito!',
+    reset:'Restablecer', download:'📥 Descargar',
+  },
+  hi:{
+    upload_btn:'छवि खोलें', dl_btn:'सहेजें', tab_global:'सेटिंग्स',
+    dz_text:'फ़ोटो लोड करें<br>और पॉप आर्ट बनाएं!<br><small style="opacity:.6">क्लिक करें या खींचें</small>',
+    sec_upload:'मूल छवि', sec_global:'वैश्विक सेटिंग्स', sec_areas:'क्षेत्र सेटिंग्स',
+    th1:'सीमा 1  काला→गहरा', th2:'सीमा 2  गहरा→हल्का', th3:'सीमा 3  हल्का→सफ़ेद',
+    line:'रेखा की मोटाई', smooth:'स्मूदिंग',
+    color:'रंग', pattern:'पैटर्न', psize:'पैटर्न का आकार',
+    areas:['क्षेत्र① सफ़ेद','क्षेत्र② हल्का','क्षेत्र③ गहरा','क्षेत्र④ काला'],
+    no_file:'कोई पैटर्न नहीं', has_file:'📌 फ़ाइल चुनी गई',
+    processing:'प्रोसेसिंग…', success:'शानदार रूपांतरण!',
+    reset:'रीसेट', download:'📥 डाउनलोड',
   },
 };
 let lang = 'ja';
@@ -448,7 +474,7 @@ function globalSection(){
     {key:'th2', label:t().th2, min:0, max:255, step:1,  dec:0},
     {key:'th3', label:t().th3, min:0, max:255, step:1,  dec:0},
     {key:'line',label:t().line,min:0, max:1,   step:.05,dec:2},
-    {key:'smooth',label:t().smooth,min:0,max:3,step:.1, dec:1},
+    {key:'smooth',label:t().smooth,min:0,max:1,step:.01, dec:2},
   ];
 
   wrap.innerHTML = `<div class="sec-title">${t().sec_global}</div>`;
