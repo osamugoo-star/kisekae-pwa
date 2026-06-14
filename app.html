@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kisekae">
+<meta name="theme-color" content="#0d0d1a">
+<link rel="manifest" href="manifest.json">
+<title>Kisekae-Pro</title>
+<style>
+/* ═══════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════ */
+:root {
+  --bg:       #0d0d1a;
+  --surface:  #141428;
+  --card:     #1c1c35;
+  --border:   #2a2a50;
+  --accent:   #ff3366;
+  --accent2:  #ffaa00;
+  --accent3:  #00e5ff;
+  --text:     #f0f0f8;
+  --muted:    #7070a0;
+  --success:  #00c97a;
+  --r:        10px;
+  --font:     'Segoe UI','Hiragino Sans','Yu Gothic UI',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);}
+
+/* ═══════════════════════════════════════
+   LAYOUT SHELL
+═══════════════════════════════════════ */
+#shell{
+  display:grid;
+  height:100dvh; /* dynamic viewport for mobile */
+  grid-template-rows: auto 1fr;
+  grid-template-columns: 1fr;
+}
+
+/* ── Header ── */
+#hdr{
+  background:var(--surface);
+  border-bottom:1.5px solid var(--border);
+  padding:10px 16px;
+  display:flex;align-items:center;gap:12px;
+  flex-shrink:0;
+  z-index:100;
+}
+#hdr .logo{
+  font-size:1.15rem;font-weight:800;letter-spacing:.04em;
+  background:linear-gradient(120deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+#hdr .ver{font-size:.7rem;color:var(--muted);margin-top:1px;}
+#lang-sel{
+  margin-left:auto;background:var(--card);color:var(--text);
+  border:1px solid var(--border);border-radius:6px;
+  padding:4px 10px;font-size:.82rem;cursor:pointer;
+}
+
+/* ── Body (preview + controls) ── */
+#body{
+  display:flex;
+  overflow:hidden;
+  min-height:0;
+}
+
+/* ══ DESKTOP / TABLET landscape (≥768px) ══ */
+@media(min-width:768px){
+  #body{flex-direction:row;}
+  #sidebar{
+    width:290px;flex-shrink:0;
+    overflow-y:auto;
+    background:var(--surface);
+    border-right:1px solid var(--border);
+    padding:14px 12px 24px;
+    display:flex;flex-direction:column;gap:10px;
+    scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+  }
+  #preview-area{flex:1;overflow:hidden;}
+  #bottom-bar{display:none;}
+}
+
+/* ══ MOBILE / TABLET portrait (<768px) ══ */
+@media(max-width:767px){
+  #body{flex-direction:column;}
+  #sidebar{display:none;}   /* hidden, controls go to bottom sheet */
+  #preview-area{flex:1;min-height:0;}
+  #bottom-bar{
+    display:flex;
+    flex-direction:column;
+    background:var(--surface);
+    border-top:1.5px solid var(--border);
+    flex-shrink:0;
+  }
+  #sheet-tabs{
+    display:flex;
+    border-bottom:1px solid var(--border);
+  }
+  .stab{
+    flex:1;padding:9px 4px;
+    font-size:.75rem;font-weight:600;
+    text-align:center;cursor:pointer;
+    color:var(--muted);
+    border-bottom:2px solid transparent;
+    transition:color .15s,border-color .15s;
+  }
+  .stab.active{color:var(--accent2);border-bottom-color:var(--accent2);}
+  #sheet-content{
+    overflow-y:auto;
+    max-height:36dvh;
+    padding:10px 12px 16px;
+    display:flex;flex-direction:column;gap:8px;
+    scrollbar-width:thin;
+  }
+}
+
+/* ═══════════════════════════════════════
+   PREVIEW
+═══════════════════════════════════════ */
+#preview-area{
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  padding:16px;position:relative;
+}
+#drop-zone{
+  width:100%;max-width:540px;
+  aspect-ratio:4/3;
+  border:2px dashed var(--border);
+  border-radius:16px;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:12px;
+  cursor:pointer;transition:border-color .2s;
+}
+#drop-zone:hover,.drag-over{border-color:var(--accent2)!important;}
+#drop-zone .dz-icon{font-size:2.8rem;}
+#drop-zone .dz-main{font-size:.95rem;color:var(--muted);text-align:center;line-height:1.7;}
+#drop-zone .dz-sub{font-size:.75rem;color:var(--border);}
+#canvas-out{
+  display:none;
+  max-width:100%;max-height:100%;
+  border-radius:12px;
+  box-shadow:0 8px 40px rgba(0,0,0,.6);
+  object-fit:contain;
+}
+#canvas-work{display:none;}
+#spinner{
+  display:none;position:absolute;inset:0;
+  background:rgba(13,13,26,.75);
+  align-items:center;justify-content:center;
+  border-radius:12px;
+  font-size:1rem;color:var(--accent2);gap:8px;
+  z-index:10;
+}
+.spin{display:inline-block;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+#toast{
+  display:none;position:absolute;
+  bottom:12px;left:50%;transform:translateX(-50%);
+  background:var(--success);color:#fff;
+  padding:7px 20px;border-radius:20px;
+  font-size:.83rem;font-weight:700;
+  white-space:nowrap;z-index:20;
+}
+
+/* ═══════════════════════════════════════
+   SIDEBAR / SHEET CONTROLS (shared styles)
+═══════════════════════════════════════ */
+.sec-title{
+  font-size:.68rem;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--accent2);
+  padding-bottom:4px;border-bottom:1px solid var(--border);
+  margin-bottom:2px;
+}
+.ctrl{display:flex;flex-direction:column;gap:4px;}
+.lbl{
+  font-size:.76rem;color:var(--muted);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.lbl b{color:var(--accent);font-weight:700;min-width:28px;text-align:right;}
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:4px;
+  background:var(--border);border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:15px;height:15px;
+  background:var(--accent);border-radius:50%;cursor:pointer;transition:background .15s;
+}
+input[type=range]::-webkit-slider-thumb:hover{background:var(--accent2);}
+select.sel{
+  background:var(--card);color:var(--text);
+  border:1px solid var(--border);border-radius:6px;
+  padding:5px 8px;font-size:.8rem;width:100%;cursor:pointer;
+}
+.file-btn{
+  display:flex;align-items:center;gap:6px;
+  background:var(--bg);border:1px dashed var(--border);
+  border-radius:6px;padding:5px 10px;
+  font-size:.74rem;color:var(--muted);cursor:pointer;
+  transition:border-color .15s,color .15s;width:100%;
+}
+.file-btn:hover,.file-btn.has{border-color:var(--accent2);color:var(--accent2);}
+input[type=file]{display:none;}
+.area-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:10px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.area-hdr{display:flex;align-items:center;gap:8px;}
+.area-dot{width:13px;height:13px;border-radius:50%;border:2px solid rgba(255,255,255,.15);flex-shrink:0;}
+.area-name{font-size:.8rem;font-weight:600;}
+hr.div{border:none;border-top:1px solid var(--border);}
+
+/* Buttons */
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  padding:10px 16px;border-radius:8px;border:none;
+  font-family:var(--font);font-size:.86rem;font-weight:700;
+  cursor:pointer;transition:opacity .15s,transform .1s;width:100%;
+}
+.btn:active{transform:scale(.97);}
+.btn-dl{background:linear-gradient(120deg,var(--success),#00a060);color:#fff;}
+.btn-dl:disabled{background:var(--border);cursor:not-allowed;opacity:.5;}
+.btn-reset{background:var(--card);color:var(--text);border:1px solid var(--border);}
+.btn-upload{
+  background:linear-gradient(120deg,var(--accent),var(--accent2));
+  color:#fff;margin-bottom:4px;
+}
+
+/* mobile action row */
+#mob-actions{
+  display:none;
+  padding:8px 12px;gap:8px;
+}
+@media(max-width:767px){
+  #mob-actions{display:flex;}
+  #mob-actions .btn{flex:1;font-size:.8rem;padding:9px 10px;}
+}
+@media(min-width:768px){
+  #sidebar::-webkit-scrollbar{width:4px;}
+  #sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+}
+</style>
+</head>
+<body>
+<div id="shell">
+
+  <!-- ── Header ── -->
+  <div id="hdr">
+    <div>
+      <div class="logo">🎨 Kisekae-Pro</div>
+      <div class="ver">Ver 2.0</div>
+    </div>
+    <select id="lang-sel" class="lang-sel" onchange="setLang(this.value)">
+      <option value="ja">🇯🇵 日本語</option>
+      <option value="en">🇺🇸 English</option>
+    </select>
+  </div>
+
+  <!-- ── Body ── -->
+  <div id="body">
+
+    <!-- Desktop Sidebar -->
+    <div id="sidebar">
+      <!-- content injected by JS -->
+    </div>
+
+    <!-- Preview -->
+    <div id="preview-area">
+      <div id="drop-zone"
+           onclick="document.getElementById('master-file').click()"
+           ondragover="onDragOver(event)"
+           ondragleave="onDragLeave(event)"
+           ondrop="onDrop(event)">
+        <div class="dz-icon">🖼️</div>
+        <div class="dz-main" id="dz-text">写真を読み込んで<br>ポップアートを作ろう！<br><small style="opacity:.6">クリック または ドラッグ＆ドロップ</small></div>
+        <div class="dz-sub">JPG / PNG</div>
+      </div>
+      <canvas id="canvas-out"></canvas>
+      <canvas id="canvas-work"></canvas>
+      <div id="spinner"><span class="spin">⏳</span> <span id="spin-txt">処理中…</span></div>
+      <div id="toast" id="toast"></div>
+    </div>
+
+    <!-- Mobile bottom bar -->
+    <div id="bottom-bar">
+      <div id="mob-actions">
+        <label class="btn btn-upload" style="cursor:pointer">
+          📁 <span data-t="upload_btn">画像を開く</span>
+          <input type="file" id="master-file-mob" accept="image/jpeg,image/png" onchange="onMasterChange(this)">
+        </label>
+        <button class="btn btn-dl" id="dl-btn-mob" disabled onclick="downloadResult()">📥 <span data-t="dl_btn">保存</span></button>
+        <button class="btn btn-reset" onclick="resetAll()">🔄</button>
+      </div>
+      <div id="sheet-tabs">
+        <div class="stab active" onclick="switchTab('global')">⚙️ <span data-t="tab_global">調整</span></div>
+        <div class="stab" onclick="switchTab('area1')">①</div>
+        <div class="stab" onclick="switchTab('area2')">②</div>
+        <div class="stab" onclick="switchTab('area3')">③</div>
+        <div class="stab" onclick="switchTab('area4')">④</div>
+      </div>
+      <div id="sheet-content"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Hidden master file input for desktop -->
+<input type="file" id="master-file" accept="image/jpeg,image/png" onchange="onMasterChange(this)" style="display:none">
+
+<script>
+// ═══════════════════════════════════════════════════
+// i18n
+// ═══════════════════════════════════════════════════
+const STRINGS = {
+  ja:{
+    upload_btn:'画像を開く', dl_btn:'保存', tab_global:'調整',
+    dz_text:'写真を読み込んで<br>ポップアートを作ろう！<br><small style="opacity:.6">クリック または ドラッグ＆ドロップ</small>',
+    sec_upload:'元画像', sec_global:'グローバル設定', sec_areas:'4領域の設定',
+    th1:'しきい値① 黒〜濃灰', th2:'しきい値② 濃灰〜薄灰', th3:'しきい値③ 薄灰〜白',
+    line:'境界線の太さ', smooth:'スムージング',
+    color:'カラー', pattern:'柄画像', psize:'柄の大きさ',
+    areas:['領域① (白)','領域② (薄灰)','領域③ (濃灰)','領域④ (黒)'],
+    no_file:'柄なし（単色）', has_file:'📌 ファイル選択済み',
+    processing:'処理中…', success:'きれいにきせかえできたさ！',
+    reset:'リセット', download:'📥 ダウンロード',
+  },
+  en:{
+    upload_btn:'Open Image', dl_btn:'Save', tab_global:'Settings',
+    dz_text:'Load a photo<br>and make pop art!<br><small style="opacity:.6">Click or drag & drop</small>',
+    sec_upload:'Source Image', sec_global:'Global Settings', sec_areas:'Area Settings',
+    th1:'Threshold 1  Black→Dark', th2:'Threshold 2  Dark→Light', th3:'Threshold 3  Light→White',
+    line:'Line Width', smooth:'Smoothing',
+    color:'Color', pattern:'Pattern', psize:'Pattern Size',
+    areas:['Area① White','Area② Light','Area③ Dark','Area④ Black'],
+    no_file:'No pattern (solid)', has_file:'📌 File selected',
+    processing:'Processing…', success:'Beautifully transformed!',
+    reset:'Reset', download:'📥 Download',
+  },
+};
+let lang = 'ja';
+const t = () => STRINGS[lang];
+
+function setLang(l){ lang = l; rebuildAll(); }
+
+function applyDataT(){
+  document.querySelectorAll('[data-t]').forEach(el => {
+    const v = t()[el.dataset.t];
+    if(v) el.innerHTML = v;
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// Color map
+// ═══════════════════════════════════════════════════
+const CMAP = {
+  'White / 白':          [255,255,255],
+  'Light Gray / 薄グレー':[200,200,200],
+  'Dark Gray / 濃グレー': [100,100,100],
+  'Black / 黒':          [51,51,51],
+  'Red / 赤':            [255,0,0],
+  'Blue / 青':           [0,0,255],
+  'Yellow / 黄':         [255,255,0],
+  'Green / 緑':          [0,128,0],
+  'Pink / ピンク':        [255,192,203],
+  'Purple / 紫':         [128,0,128],
+  'Orange / オレンジ':    [255,165,0],
+  'Cyan / シアン':        [0,255,255],
+};
+const CKEYS = Object.keys(CMAP);
+
+// ═══════════════════════════════════════════════════
+// Area state
+// ═══════════════════════════════════════════════════
+const DEFAULTS = ['White / 白','Light Gray / 薄グレー','Dark Gray / 濃グレー','Black / 黒'];
+let areas = DEFAULTS.map(c=>({color:c,patternImg:null,patternW:0,patternH:0,psize:.20}));
+
+// Global params
+let P = { th1:64, th2:128, th3:192, line:.5, smooth:0 };
+
+// ═══════════════════════════════════════════════════
+// Build controls (desktop sidebar OR mobile sheet)
+// ═══════════════════════════════════════════════════
+function rebuildAll(){
+  applyDataT();
+  buildDesktopSidebar();
+  buildMobileSheet(activeTab);
+  document.getElementById('dz-text').innerHTML = t().dz_text;
+}
+
+function buildDesktopSidebar(){
+  const sb = document.getElementById('sidebar');
+  sb.innerHTML = '';
+  sb.appendChild(uploadSection());
+  sb.appendChild(divider());
+  sb.appendChild(globalSection());
+  sb.appendChild(divider());
+  areas.forEach((_,i) => sb.appendChild(areaCard(i)));
+  sb.appendChild(divider());
+  sb.appendChild(actionSection());
+}
+
+let activeTab = 'global';
+function switchTab(tab){
+  activeTab = tab;
+  document.querySelectorAll('.stab').forEach((el,i)=>{
+    el.classList.toggle('active', ['global','area1','area2','area3','area4'][i] === tab);
+  });
+  buildMobileSheet(tab);
+}
+
+function buildMobileSheet(tab){
+  const sc = document.getElementById('sheet-content');
+  if(!sc) return;
+  sc.innerHTML = '';
+  if(tab === 'global'){
+    sc.appendChild(globalSection());
+  } else {
+    const i = parseInt(tab.replace('area','')) - 1;
+    sc.appendChild(areaCard(i));
+  }
+}
+
+function divider(){ const hr=document.createElement('hr'); hr.className='div'; return hr; }
+
+function uploadSection(){
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <div class="sec-title">${t().sec_upload}</div>
+    <label class="btn btn-upload" style="cursor:pointer;margin-top:6px">
+      📁 ${t().upload_btn}
+      <input type="file" accept="image/jpeg,image/png" onchange="onMasterChange(this)">
+    </label>`;
+  return wrap;
+}
+
+function globalSection(){
+  const wrap = document.createElement('div');
+  wrap.style.display = 'flex';
+  wrap.style.flexDirection = 'column';
+  wrap.style.gap = '8px';
+
+  const sliders = [
+    {key:'th1', label:t().th1, min:0, max:255, step:1,  dec:0},
+    {key:'th2', label:t().th2, min:0, max:255, step:1,  dec:0},
+    {key:'th3', label:t().th3, min:0, max:255, step:1,  dec:0},
+    {key:'line',label:t().line,min:0, max:1,   step:.05,dec:2},
+    {key:'smooth',label:t().smooth,min:0,max:3,step:.1, dec:1},
+  ];
+
+  wrap.innerHTML = `<div class="sec-title">${t().sec_global}</div>`;
+  sliders.forEach(s => {
+    const d = document.createElement('div');
+    d.className = 'ctrl';
+    d.innerHTML = `
+      <div class="lbl">${s.label}<b id="gv-${s.key}">${P[s.key].toFixed(s.dec)}</b></div>
+      <input type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${P[s.key]}"
+        oninput="P['${s.key}']=parseFloat(this.value);
+                 document.querySelectorAll('#gv-${s.key}').forEach(e=>e.textContent=P['${s.key}'].toFixed(${s.dec}));
+                 render()">`;
+    wrap.appendChild(d);
+  });
+  return wrap;
+}
+
+function areaCard(i){
+  const s = areas[i];
+  const rgb = CMAP[s.color];
+  const dotColor = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;
+
+  const card = document.createElement('div');
+  card.className = 'area-card';
+  card.innerHTML = `
+    <div class="area-hdr">
+      <div class="area-dot" id="dot-${i}" style="background:${dotColor}"></div>
+      <div class="area-name">${t().areas[i]}</div>
+    </div>
+    <div class="lbl">${t().color}</div>
+    <select class="sel" onchange="onAreaColor(${i},this.value)">
+      ${CKEYS.map(k=>`<option value="${k}" ${k===s.color?'selected':''}>${k}</option>`).join('')}
+    </select>
+    <label class="file-btn ${s.patternImg?'has':''}" id="fb-${i}">
+      <span id="fb-txt-${i}">${s.patternImg ? t().has_file : '📁 '+t().pattern}</span>
+      <input type="file" accept="image/jpeg,image/png" onchange="onPatternFile(${i},this)">
+    </label>
+    <div class="ctrl">
+      <div class="lbl">${t().psize}<b id="psv-${i}">${s.psize.toFixed(2)}</b></div>
+      <input type="range" min=".02" max=".80" step=".02" value="${s.psize}"
+        oninput="areas[${i}].psize=parseFloat(this.value);
+                 document.querySelectorAll('#psv-${i}').forEach(e=>e.textContent=areas[${i}].psize.toFixed(2));
+                 render()">
+    </div>`;
+  return card;
+}
+
+function actionSection(){
+  const wrap = document.createElement('div');
+  wrap.style.display='flex';wrap.style.flexDirection='column';wrap.style.gap='8px';
+  wrap.innerHTML = `
+    <button class="btn btn-dl" id="dl-btn-desk" disabled onclick="downloadResult()">
+      ${t().download}
+    </button>
+    <button class="btn btn-reset" onclick="resetAll()">${t().reset}</button>`;
+  return wrap;
+}
+
+function onAreaColor(i, val){
+  areas[i].color = val;
+  const rgb = CMAP[val];
+  document.querySelectorAll(`#dot-${i}`).forEach(el =>
+    el.style.background = `rgb(${rgb[0]},${rgb[1]},${rgb[2]})`);
+  render();
+}
+
+function onPatternFile(i, input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width=img.width; c.height=img.height;
+      c.getContext('2d').drawImage(img,0,0);
+      areas[i].patternImg = c.getContext('2d').getImageData(0,0,img.width,img.height);
+      areas[i].patternW = img.width; areas[i].patternH = img.height;
+      document.querySelectorAll(`#fb-${i}`).forEach(el=>el.classList.add('has'));
+      document.querySelectorAll(`#fb-txt-${i}`).forEach(el=>el.textContent=t().has_file);
+      render();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ═══════════════════════════════════════════════════
+// Master image
+// ═══════════════════════════════════════════════════
+let masterData=null, masterW=0, masterH=0;
+
+function onMasterChange(input){
+  const file = input.files[0]; if(!file) return;
+  loadImage(file);
+}
+function onDragOver(e){ e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function onDragLeave(e){ document.getElementById('drop-zone').classList.remove('drag-over'); }
+function onDrop(e){
+  e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if(f && f.type.startsWith('image/')) loadImage(f);
+}
+
+function loadImage(file){
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      // Limit size to 2000px max dimension for performance
+      let w=img.width, h=img.height;
+      const MAX=2000;
+      if(w>MAX||h>MAX){ const s=MAX/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
+
+      const wc=document.getElementById('canvas-work');
+      wc.width=w; wc.height=h;
+      wc.getContext('2d').drawImage(img,0,0,w,h);
+      masterData=wc.getContext('2d').getImageData(0,0,w,h);
+      masterW=w; masterH=h;
+
+      // Auto thresholds
+      const gray=computeGray(masterData.data,w,h);
+      const mean=gray.reduce((a,b)=>a+b,0)/gray.length;
+      P.th1=Math.max(0,Math.round(mean-40));
+      P.th2=Math.round(mean);
+      P.th3=Math.min(255,Math.round(mean+40));
+
+      document.getElementById('drop-zone').style.display='none';
+      document.getElementById('canvas-out').style.display='block';
+      rebuildAll();
+      render();
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ═══════════════════════════════════════════════════
+// Image processing
+// ═══════════════════════════════════════════════════
+function computeGray(data,w,h){
+  const g=new Float32Array(w*h);
+  for(let i=0;i<w*h;i++) g[i]=.299*data[i*4]+.587*data[i*4+1]+.114*data[i*4+2];
+  return g;
+}
+
+function gaussBlur(g,w,h,sigma){
+  if(sigma<=0) return g;
+  const k=Math.max(1,Math.round(sigma*2.5))*2+1, half=Math.floor(k/2);
+  let src=g.slice(), dst=new Float32Array(w*h);
+  for(let pass=0;pass<3;pass++){
+    for(let y=0;y<h;y++){
+      let s=0,c=0;
+      for(let x=0;x<k;x++){const xi=Math.min(x-half,w-1);if(xi>=0){s+=src[y*w+xi];c++;}}
+      for(let x=0;x<w;x++){
+        dst[y*w+x]=s/c;
+        const a=x+half+1,r=x-half;
+        if(a<w){s+=src[y*w+a];c++;} if(r>=0){s-=src[y*w+r];c--;}
+      }
+    }
+    src=dst.slice(); dst=new Float32Array(w*h);
+    for(let x=0;x<w;x++){
+      let s=0,c=0;
+      for(let y=0;y<k;y++){const yi=Math.min(y-half,h-1);if(yi>=0){s+=src[yi*w+x];c++;}}
+      for(let y=0;y<h;y++){
+        dst[y*w+x]=s/c;
+        const a=y+half+1,r=y-half;
+        if(a<h){s+=src[a*w+x];c++;} if(r>=0){s-=src[r*w+x];c--;}
+      }
+    }
+    src=dst.slice(); dst=new Float32Array(w*h);
+  }
+  return src;
+}
+
+function resizePx(src,sw,sh,dw,dh){
+  const dst=new Uint8ClampedArray(dw*dh*4);
+  const rx=sw/dw, ry=sh/dh;
+  for(let y=0;y<dh;y++) for(let x=0;x<dw;x++){
+    const si=(Math.floor(y*ry)*sw+Math.floor(x*rx))*4;
+    const di=(y*dw+x)*4;
+    dst[di]=src[si];dst[di+1]=src[si+1];dst[di+2]=src[si+2];dst[di+3]=src[si+3];
+  }
+  return dst;
+}
+
+function buildTile(imgd,pw,ph){
+  const tw=pw*2,th=ph*2, tile=new Uint8ClampedArray(tw*th*4), src=imgd;
+  for(let y=0;y<ph;y++) for(let x=0;x<pw;x++){
+    const si=(y*pw+x)*4;
+    const d0=(y*tw+x)*4, d1=(y*tw+(tw-1-x))*4;
+    const d2=((th-1-y)*tw+x)*4, d3=((th-1-y)*tw+(tw-1-x))*4;
+    for(let c=0;c<4;c++) tile[d0+c]=tile[d1+c]=tile[d2+c]=tile[d3+c]=src[si+c];
+  }
+  return {data:tile,w:tw,h:th};
+}
+
+function dilate3(s,w,h){
+  const d=new Uint8Array(w*h);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    let mx=0;
+    for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+      const v=s[Math.min(h-1,Math.max(0,y+dy))*w+Math.min(w-1,Math.max(0,x+dx))];
+      if(v>mx) mx=v;
+    }
+    d[y*w+x]=mx;
+  }
+  return d;
+}
+function erode3(s,w,h){
+  const d=new Uint8Array(w*h);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    let mn=255;
+    for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++){
+      const v=s[Math.min(h-1,Math.max(0,y+dy))*w+Math.min(w-1,Math.max(0,x+dx))];
+      if(v<mn) mn=v;
+    }
+    d[y*w+x]=mn;
+  }
+  return d;
+}
+
+// ═══════════════════════════════════════════════════
+// Render (rAF-throttled)
+// ═══════════════════════════════════════════════════
+let pending=false;
+function render(){
+  if(!masterData||pending) return;
+  pending=true;
+  requestAnimationFrame(()=>{
+    document.getElementById('spinner').style.display='flex';
+    setTimeout(()=>{ _render(); pending=false; },10);
+  });
+}
+
+function _render(){
+  const {th1,th2,th3,line,smooth}=P;
+  const [t1,t2,t3]=[th1,th2,th3].slice().sort((a,b)=>a-b);
+  const w=masterW,h=masterH,src=masterData.data;
+
+  let gray=computeGray(src,w,h);
+  if(smooth>0) gray=gaussBlur(gray,w,h,smooth);
+
+  const ai=new Uint8Array(w*h);
+  for(let i=0;i<w*h;i++){
+    const g=gray[i];
+    ai[i]=g>=t3?0:g>=t2?1:g>=t1?2:3;
+  }
+
+  // Pre-build tiles
+  const tiles=areas.map(s=>{
+    if(!s.patternImg) return null;
+    const nw=Math.max(1,Math.round(s.patternW*s.psize));
+    const nh=Math.max(1,Math.round(s.patternH*s.psize));
+    const resized=resizePx(s.patternImg.data,s.patternW,s.patternH,nw,nh);
+    return buildTile(resized,nw,nh);
+  });
+
+  const OFF=[{x:17,y:31},{x:53,y:7},{x:29,y:61},{x:11,y:43}];
+  const res=new Uint8ClampedArray(w*h*4);
+
+  for(let pi=0;pi<w*h;pi++){
+    const a=ai[pi], s=areas[a];
+    const rgb=CMAP[s.color];
+    const px=pi%w, py=Math.floor(pi/w);
+    const di=pi*4;
+    if(tiles[a]){
+      const tl=tiles[a];
+      const tx=((px+OFF[a].x)%tl.w+tl.w)%tl.w;
+      const ty=((py+OFF[a].y)%tl.h+tl.h)%tl.h;
+      const ti=(ty*tl.w+tx)*4;
+      res[di]  =Math.round(rgb[0]/255*tl.data[ti]);
+      res[di+1]=Math.round(rgb[1]/255*tl.data[ti+1]);
+      res[di+2]=Math.round(rgb[2]/255*tl.data[ti+2]);
+    } else {
+      res[di]=rgb[0]; res[di+1]=rgb[1]; res[di+2]=rgb[2];
+    }
+    res[di+3]=255;
+  }
+
+  if(line>0){
+    const seg=new Uint8Array(w*h);
+    for(let i=0;i<w*h;i++) seg[i]=[255,170,85,0][ai[i]];
+    const dil=dilate3(seg,w,h), ero=erode3(seg,w,h);
+    for(let i=0;i<w*h;i++){
+      const grad=dil[i]-ero[i];
+      if(grad>0){
+        const al=Math.min(1,(grad/255)*line);
+        const di=i*4;
+        res[di]  =Math.round(res[di]  *(1-al)+51*al);
+        res[di+1]=Math.round(res[di+1]*(1-al)+51*al);
+        res[di+2]=Math.round(res[di+2]*(1-al)+51*al);
+      }
+    }
+  }
+
+  const co=document.getElementById('canvas-out');
+  co.width=w; co.height=h;
+  const id=co.getContext('2d').createImageData(w,h);
+  id.data.set(res);
+  co.getContext('2d').putImageData(id,0,0);
+
+  document.getElementById('spinner').style.display='none';
+  const dlDesk=document.getElementById('dl-btn-desk');
+  const dlMob=document.getElementById('dl-btn-mob');
+  if(dlDesk) dlDesk.disabled=false;
+  if(dlMob) dlMob.disabled=false;
+
+  const toast=document.getElementById('toast');
+  toast.textContent=t().success;
+  toast.style.display='block';
+  setTimeout(()=>toast.style.display='none',1800);
+}
+
+function downloadResult(){
+  const a=document.createElement('a');
+  a.download='kisekae_result.png';
+  a.href=document.getElementById('canvas-out').toDataURL('image/png');
+  a.click();
+}
+
+function resetAll(){
+  masterData=null; masterW=masterH=0;
+  areas=DEFAULTS.map(c=>({color:c,patternImg:null,patternW:0,patternH:0,psize:.20}));
+  P={th1:64,th2:128,th3:192,line:.5,smooth:0};
+  document.getElementById('drop-zone').style.display='flex';
+  document.getElementById('canvas-out').style.display='none';
+  const dlD=document.getElementById('dl-btn-desk'), dlM=document.getElementById('dl-btn-mob');
+  if(dlD)dlD.disabled=true; if(dlM)dlM.disabled=true;
+  rebuildAll();
+}
+
+// PWA Service Worker
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+}
+
+// Init
+rebuildAll();
+</script>
+</body>
+</html>

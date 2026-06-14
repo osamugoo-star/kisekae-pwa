@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="写真を4色のポップアートに変換。Kisekae-Pro — プロ向けきせかえアプリ">
+<title>Kisekae-Pro | ポップアートきせかえアプリ</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600&display=swap');
+
+:root{
+  --ink:#0a0a14;
+  --paper:#f5f4ef;
+  --accent:#ff3366;
+  --accent2:#ffaa00;
+  --accent3:#00c97a;
+  --muted:#6b6b80;
+  --card:#ffffff;
+  --border:#e2e1db;
+  --font-display:'Syne',sans-serif;
+  --font-body:'Inter','Hiragino Sans','Yu Gothic UI',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--font-body);
+  line-height:1.6;
+  overflow-x:hidden;
+}
+
+/* ── Nav ── */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(245,244,239,.92);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:14px 5vw;
+  display:flex;align-items:center;gap:16px;
+}
+.nav-logo{
+  font-family:var(--font-display);
+  font-size:1.2rem;font-weight:800;
+  background:linear-gradient(120deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.nav-cta{
+  margin-left:auto;
+  background:var(--accent);color:#fff;
+  border:none;border-radius:8px;
+  padding:9px 20px;
+  font-family:var(--font-body);font-size:.88rem;font-weight:600;
+  cursor:pointer;text-decoration:none;
+  transition:opacity .15s;
+}
+.nav-cta:hover{opacity:.85;}
+
+/* ── Hero ── */
+.hero{
+  min-height:92vh;
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  text-align:center;
+  padding:60px 5vw 40px;
+  position:relative;
+  overflow:hidden;
+}
+
+/* Abstract color-block background */
+.hero::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 30%, rgba(255,51,102,.12) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 60% at 80% 70%, rgba(255,170,0,.10) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 50% 90%, rgba(0,201,122,.08) 0%, transparent 70%);
+  z-index:0;
+}
+
+/* Pop art demo strip — pure CSS */
+.hero-art{
+  display:flex;gap:6px;
+  margin-bottom:40px;
+  position:relative;z-index:1;
+}
+.art-block{
+  width:70px;height:100px;
+  border-radius:10px;
+  border:2px solid rgba(0,0,0,.08);
+  flex-shrink:0;
+  position:relative;
+  overflow:hidden;
+}
+/* simulate pop-art pattern with CSS */
+.art-block::after{
+  content:'';
+  position:absolute;inset:0;
+  background-image:
+    radial-gradient(circle, rgba(255,255,255,.25) 20%, transparent 21%),
+    radial-gradient(circle, rgba(255,255,255,.25) 20%, transparent 21%);
+  background-size:12px 12px;
+  background-position:0 0,6px 6px;
+}
+
+@media(min-width:600px){
+  .art-block{width:100px;height:140px;}
+}
+
+.hero-eyebrow{
+  font-size:.8rem;font-weight:600;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--accent);
+  margin-bottom:16px;
+  position:relative;z-index:1;
+}
+.hero-h1{
+  font-family:var(--font-display);
+  font-size:clamp(2.4rem,7vw,5rem);
+  font-weight:800;
+  line-height:1.05;
+  letter-spacing:-.02em;
+  position:relative;z-index:1;
+  max-width:800px;
+}
+.hero-h1 em{
+  font-style:normal;
+  background:linear-gradient(120deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-sub{
+  margin-top:20px;
+  font-size:clamp(1rem,2.5vw,1.2rem);
+  color:var(--muted);max-width:560px;
+  position:relative;z-index:1;
+}
+.hero-actions{
+  margin-top:36px;
+  display:flex;flex-wrap:wrap;
+  gap:12px;justify-content:center;
+  position:relative;z-index:1;
+}
+.btn-primary{
+  background:var(--accent);color:#fff;
+  border:none;border-radius:10px;
+  padding:14px 32px;
+  font-family:var(--font-body);font-size:1rem;font-weight:700;
+  cursor:pointer;text-decoration:none;
+  box-shadow:0 4px 20px rgba(255,51,102,.35);
+  transition:transform .15s,box-shadow .15s;
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(255,51,102,.4);}
+.btn-ghost{
+  background:transparent;color:var(--ink);
+  border:1.5px solid var(--border);border-radius:10px;
+  padding:13px 28px;
+  font-family:var(--font-body);font-size:1rem;font-weight:600;
+  cursor:pointer;text-decoration:none;
+  transition:border-color .15s;
+}
+.btn-ghost:hover{border-color:var(--ink);}
+
+.hero-note{
+  margin-top:16px;font-size:.78rem;color:var(--muted);
+  position:relative;z-index:1;
+}
+
+/* ── How it works ── */
+.section{padding:80px 5vw;}
+.section-label{
+  font-size:.75rem;font-weight:700;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--accent);
+  margin-bottom:12px;
+}
+.section-h2{
+  font-family:var(--font-display);
+  font-size:clamp(1.8rem,5vw,3rem);
+  font-weight:800;line-height:1.1;letter-spacing:-.02em;
+  max-width:600px;
+}
+.section-body{margin-top:16px;color:var(--muted);max-width:520px;font-size:1.05rem;}
+
+.steps{
+  margin-top:48px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:20px;
+}
+.step{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:24px;
+}
+.step-num{
+  font-family:var(--font-display);
+  font-size:2rem;font-weight:800;
+  color:var(--accent);line-height:1;
+  margin-bottom:10px;
+}
+.step-title{font-weight:700;font-size:1rem;margin-bottom:6px;}
+.step-desc{font-size:.88rem;color:var(--muted);line-height:1.6;}
+
+/* ── Features ── */
+.features-grid{
+  margin-top:48px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:16px;
+}
+.feat{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:14px;padding:22px 24px;
+  display:flex;flex-direction:column;gap:8px;
+}
+.feat-icon{font-size:1.8rem;}
+.feat-title{font-weight:700;font-size:.95rem;}
+.feat-desc{font-size:.84rem;color:var(--muted);line-height:1.6;}
+
+/* ── Pricing ── */
+.pricing-section{
+  background:var(--ink);
+  color:#f0f0f8;
+  padding:80px 5vw;
+  text-align:center;
+}
+.pricing-section .section-h2{color:#f0f0f8;max-width:none;}
+.pricing-section .section-label{color:var(--accent2);}
+.pricing-section .section-body{color:#8899aa;max-width:none;margin-left:auto;margin-right:auto;}
+
+.pricing-card{
+  display:inline-block;
+  background:#1a1a30;
+  border:1.5px solid #2a2a50;
+  border-radius:20px;
+  padding:40px 48px;
+  margin-top:40px;
+  position:relative;
+  max-width:400px;
+  width:100%;
+}
+.pricing-badge{
+  position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+  background:var(--accent2);color:var(--ink);
+  font-size:.72rem;font-weight:800;letter-spacing:.1em;
+  text-transform:uppercase;
+  padding:5px 16px;border-radius:20px;white-space:nowrap;
+}
+.price-num{
+  font-family:var(--font-display);
+  font-size:3.5rem;font-weight:800;line-height:1;
+  color:#f0f0f8;
+}
+.price-unit{font-size:1rem;color:#8899aa;margin-top:4px;}
+.price-features{
+  margin-top:24px;
+  text-align:left;
+  list-style:none;
+  display:flex;flex-direction:column;gap:10px;
+}
+.price-features li{
+  font-size:.9rem;color:#c0c0e0;
+  display:flex;align-items:flex-start;gap:8px;
+}
+.price-features li::before{content:'✓';color:var(--accent3);font-weight:700;flex-shrink:0;}
+.pricing-cta{
+  margin-top:28px;
+  background:linear-gradient(120deg,var(--accent),var(--accent2));
+  color:#fff;border:none;border-radius:10px;
+  padding:15px 40px;width:100%;
+  font-family:var(--font-body);font-size:1rem;font-weight:700;
+  cursor:pointer;text-decoration:none;display:block;
+  box-shadow:0 4px 24px rgba(255,51,102,.4);
+  transition:transform .15s;
+}
+.pricing-cta:hover{transform:translateY(-2px);}
+.pricing-note{margin-top:14px;font-size:.78rem;color:#556;}
+
+/* ── FAQ ── */
+.faq-list{margin-top:40px;display:flex;flex-direction:column;gap:12px;max-width:680px;}
+.faq-item{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:20px 22px;
+}
+.faq-q{font-weight:700;font-size:.95rem;margin-bottom:6px;}
+.faq-a{font-size:.88rem;color:var(--muted);line-height:1.7;}
+
+/* ── Footer ── */
+footer{
+  background:var(--ink);color:#556;
+  text-align:center;padding:28px 5vw;
+  font-size:.8rem;
+}
+footer a{color:#8899aa;text-decoration:none;}
+
+/* ── Util ── */
+.tag{
+  display:inline-block;
+  background:rgba(255,51,102,.1);color:var(--accent);
+  border:1px solid rgba(255,51,102,.2);
+  border-radius:6px;padding:2px 10px;
+  font-size:.75rem;font-weight:600;
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <span class="nav-logo">🎨 Kisekae-Pro</span>
+  <a href="app.html" class="nav-cta">無料で試す →</a>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <!-- Pop-art color blocks -->
+  <div class="hero-art">
+    <div class="art-block" style="background:#f5f5f5;"></div>
+    <div class="art-block" style="background:#c8c8c8;"></div>
+    <div class="art-block" style="background:#ff3366;"></div>
+    <div class="art-block" style="background:#ffaa00;"></div>
+    <div class="art-block" style="background:#1a1a30;"></div>
+  </div>
+
+  <p class="hero-eyebrow">ポップアートきせかえ</p>
+  <h1 class="hero-h1">あなたの写真を<br><em>ポップアート</em>に！<br>さあ！はじめよう！</h1>
+  <p class="hero-sub">画像をアップロードして、4色の明度領域に色・柄を自由に割り当て。スマホでもPCでもサクサク動く。</p>
+
+  <div class="hero-actions">
+    <a href="app.html" class="btn-primary">🎨 今すぐ無料で試す</a>
+    <a href="#pricing" class="btn-ghost">料金プランを見る</a>
+  </div>
+  <p class="hero-note">インストール不要 · ブラウザだけで動く · iOS / Android / PC 対応</p>
+</section>
+
+<!-- How it works -->
+<section class="section" style="background:var(--card);border-top:1px solid var(--border)">
+  <p class="section-label">使い方</p>
+  <h2 class="section-h2">3ステップで完成</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-title">写真をアップロード</div>
+      <div class="step-desc">JPG・PNG をドラッグ＆ドロップ、またはカメラロールから選択。自動で明度を解析します。</div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-title">色と柄を設定</div>
+      <div class="step-desc">4つの明度領域（白・薄灰・濃灰・黒）に好きな色や柄画像を割り当て。スライダーで境界を調整。</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-title">保存して完成</div>
+      <div class="step-desc">「ダウンロード」ボタンでPNG保存。SNSやプリント素材にそのまま使えます。</div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="section">
+  <p class="section-label">機能</p>
+  <h2 class="section-h2">プロが求める<br>機能を全部入り</h2>
+  <div class="features-grid">
+    <div class="feat">
+      <div class="feat-icon">📱</div>
+      <div class="feat-title">全デバイス対応</div>
+      <div class="feat-desc">iPhone・Android・iPad・PC、ブラウザがあれば動く。インストール不要、アプデ不要。</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">⚡</div>
+      <div class="feat-title">リアルタイム処理</div>
+      <div class="feat-desc">スライダーを動かすたびに即座にプレビューが更新。待ち時間なし。</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🎨</div>
+      <div class="feat-title">4領域 × 色＋柄</div>
+      <div class="feat-desc">各領域に12色の単色、または自分でアップした柄画像を適用可能。無限の組み合わせ。</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🔲</div>
+      <div class="feat-title">境界線コントロール</div>
+      <div class="feat-desc">領域の境界を強調する黒ラインの太さをスライダー1本で調整。</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🌊</div>
+      <div class="feat-title">スムージング</div>
+      <div class="feat-desc">ガウシアンぼかしで境界をなめらかに。ハードエッジからソフトグラデーションまで対応。</div>
+    </div>
+    <div class="feat">
+      <div class="feat-icon">🔒</div>
+      <div class="feat-title">完全ローカル処理</div>
+      <div class="feat-desc">画像はサーバーに送信されない。あなたのデバイスだけで処理するから安心・高速。</div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section class="pricing-section" id="pricing">
+  <p class="section-label">料金</p>
+  <h2 class="section-h2">シンプルな月額プラン</h2>
+  <p class="section-body" style="margin-top:12px">解約はいつでも即時。縛りなし。</p>
+
+  <div class="pricing-card">
+    <div class="pricing-badge">✨ PRO プラン</div>
+    <div class="price-num">¥980</div>
+    <div class="price-unit">/ 月（税込）</div>
+    <ul class="price-features">
+      <li>全機能が無制限で使い放題</li>
+      <li>スマホ・タブレット・PC 全対応</li>
+      <li>画像サイズ制限なし</li>
+      <li>柄画像アップロード機能</li>
+      <li>PNG高品質エクスポート</li>
+      <li>新機能を随時追加</li>
+    </ul>
+    <a href="app.html" class="pricing-cta">まず無料で試す →</a>
+    <p class="pricing-note">クレジットカード不要 · 無料トライアル後に購入</p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section">
+  <p class="section-label">よくある質問</p>
+  <h2 class="section-h2">FAQ</h2>
+  <div class="faq-list">
+    <div class="faq-item">
+      <div class="faq-q">アプリのインストールは必要ですか？</div>
+      <div class="faq-a">不要です。ブラウザで URL を開くだけで使えます。スマホにホーム画面追加（PWA）もできます。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">写真はサーバーにアップロードされますか？</div>
+      <div class="faq-a">されません。すべての処理はあなたのデバイス上で完結します。プライバシーは完全に守られます。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">解約はどうすればいいですか？</div>
+      <div class="faq-a">マイページからいつでも即座に解約できます。日割り計算はなく、次の請求日から停止されます。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">作った画像の商用利用はできますか？</div>
+      <div class="faq-a">はい、サブスクリプション期間中に作成した画像は商用利用可能です。</div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <p>© 2026 Kisekae-Pro · <a href="#">利用規約</a> · <a href="#">プライバシーポリシー</a></p>
+</footer>
+
+</body>
+</html>
