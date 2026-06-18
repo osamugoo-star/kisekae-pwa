@@ -248,6 +248,137 @@ hr.div{border:none;border-top:1px solid var(--border);}
   window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
 </script>
 <script defer src="/_vercel/insights/script.js"></script>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/11.9.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, increment }
+  from "https://www.gstatic.com/firebasejs/11.9.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDNjIim03w7KBdId0zv3K0XApvc0iTCeNY",
+  authDomain: "kisekaekun.firebaseapp.com",
+  projectId: "kisekaekun",
+  storageBucket: "kisekaekun.firebasestorage.app",
+  messagingSenderId: "44071566201",
+  appId: "1:44071566201:web:9919f9042b67d1f4690da8"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const provider = new GoogleAuthProvider();
+
+const FREE_LIMIT = 10;
+
+// ── ログインオーバーレイを作成 ──
+const overlay = document.createElement('div');
+overlay.id = 'auth-overlay';
+overlay.style.cssText = `
+  position:fixed;inset:0;background:rgba(13,13,26,.97);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:9999;gap:20px;padding:24px;text-align:center;
+`;
+overlay.innerHTML = `
+  <div style="font-size:2.5rem">🎨</div>
+  <div style="font-size:1.4rem;font-weight:700;color:#f0f0f8">Kisekae-Pro</div>
+  <div id="auth-msg" style="color:#7070a0;font-size:.95rem;max-width:320px;line-height:1.6">
+    Sign in with Google to start using the app.<br>First 10 uses are free!
+  </div>
+  <button id="google-signin-btn" style="
+    display:flex;align-items:center;gap:10px;
+    background:#fff;color:#333;border:none;border-radius:8px;
+    padding:12px 24px;font-size:1rem;font-weight:600;cursor:pointer;
+  ">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="20">
+    Sign in with Google
+  </button>
+`;
+document.body.appendChild(overlay);
+
+// ── 使用回数バッジをヘッダーに追加 ──
+const badge = document.createElement('div');
+badge.id = 'usage-badge';
+badge.style.cssText = `
+  margin-left:auto;font-size:.78rem;color:#7070a0;white-space:nowrap;
+  display:flex;align-items:center;gap:8px;
+`;
+badge.innerHTML = `
+  <span id="usage-count"></span>
+  <button id="signout-btn" style="
+    background:transparent;border:1px solid #2a2a50;color:#7070a0;
+    border-radius:6px;padding:3px 10px;font-size:.75rem;cursor:pointer;
+  ">Sign out</button>
+`;
+document.getElementById('hdr').appendChild(badge);
+
+// ── ログインボタン処理 ──
+document.getElementById('google-signin-btn').onclick = async () => {
+  try {
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    console.error(e);
+  }
+};
+
+document.getElementById('signout-btn').onclick = () => signOut(auth);
+
+// ── 認証状態監視 ──
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    overlay.style.display = 'none';
+    // Firestoreからユーザー情報取得
+    const ref = doc(db, 'users', user.uid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) {
+      await setDoc(ref, { usageCount: 0, email: user.email, isPro: false });
+    }
+    const data = (await getDoc(ref)).data();
+    window._fbUser = user;
+    window._fbRef = ref;
+    window._fbDb = db;
+    updateUsageBadge(data.usageCount, data.isPro);
+  } else {
+    overlay.style.display = 'flex';
+    document.getElementById('usage-count').textContent = '';
+    window._fbUser = null;
+  }
+});
+
+function updateUsageBadge(count, isPro) {
+  const el = document.getElementById('usage-count');
+  if (isPro) {
+    el.innerHTML = `✨ PRO`;
+    el.style.color = '#ffaa00';
+  } else {
+    const remaining = Math.max(0, FREE_LIMIT - count);
+    el.innerHTML = `Free: ${remaining} left`;
+    el.style.color = remaining <= 2 ? '#ff3366' : '#7070a0';
+  }
+}
+
+// グローバルに使用回数チェック関数を公開
+window.checkAndIncrementUsage = async () => {
+  if (!window._fbUser) return false;
+  const snap = await getDoc(window._fbRef);
+  const data = snap.data();
+  if (data.isPro) return true;
+  if (data.usageCount >= FREE_LIMIT) {
+    // 上限に達した場合、アップグレード促進
+    const go = confirm(
+      `You've used all ${FREE_LIMIT} free conversions!\n\nUpgrade to PRO for unlimited use?\n($5/month)`
+    );
+    if (go) window.open('https://buy.stripe.com/bJeeV66I68mN2bH0NvfjG00', '_blank');
+    return false;
+  }
+  await updateDoc(window._fbRef, { usageCount: increment(1) });
+  const newCount = data.usageCount + 1;
+  updateUsageBadge(newCount, false);
+  return true;
+};
+</script>
 </head>
 <body>
 <div id="shell">
@@ -616,7 +747,12 @@ function onDrop(e){
   if(f && f.type.startsWith('image/')) loadImage(f);
 }
 
-function loadImage(file){
+async function loadImage(file){
+  // 使用回数チェック
+  if(window.checkAndIncrementUsage){
+    const ok = await window.checkAndIncrementUsage();
+    if(!ok) return;
+  }
   const reader = new FileReader();
   reader.onload = e => {
     const img = new Image();
