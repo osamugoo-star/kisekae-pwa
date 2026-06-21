@@ -368,9 +368,9 @@ window.checkAndIncrementUsage = async () => {
   if (data.usageCount >= FREE_LIMIT) {
     // 上限に達した場合、アップグレード促進
     const go = confirm(
-      `You've used all ${FREE_LIMIT} free conversions!\n\nUpgrade to PRO for unlimited use?\n($5/month)`
+      `You've used all ${FREE_LIMIT} free conversions!\n\nUpgrade to PRO for unlimited use?\nOne-time payment of $9.99 (no subscription)`
     );
-    if (go) window.open('https://buy.stripe.com/bJeeV66I68mN2bH0NvfjG00', '_blank');
+    if (go) window.open('https://buy.stripe.com/fZu6oAeay1Yp4jP1RzfjG01', '_blank');
     return false;
   }
   await updateDoc(window._fbRef, { usageCount: increment(1) });
